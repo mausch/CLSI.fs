@@ -46,23 +46,30 @@ type Resource = {
 
 let R = Resource.make
 
+type Options = {
+    compiler: string
+    outputFormat: string
+}
+
 type Request = {
     token: string
     name: string option
     root: string
     resources: Resource seq
+    options: Options option
     }
     with
-        static member make(token, root, resources, ?name) =
+        static member make(token, root, resources, ?name, ?options) =
             {
                 token = token
                 root = root
                 resources = resources
                 name = name
+                options = options
             }
 
 let serializeRequest (r: Request) =
-    let token = Element.make("token", content = [Content.Value r.token])
+    let token = Some <| Element.make("token", content = [Content.Value r.token])
     let resourceToXml (res: Resource) =
         let mutable attr = ["path", res.path]
         let mutable content = []
@@ -72,9 +79,17 @@ let serializeRequest (r: Request) =
         | Url u -> attr <- ("url", u.ToString())::attr
         | Content c -> content <- [Content.Value c]
         Element.make("resource", attributes = attr, content = content)
-    let resources = r.resources |> Seq.map resourceToXml |> Seq.toList
-    let resourcesElem = Element.make("resources", attributes = ["root-resource-path", r.root], content = [Content.Children resources])
-    let xml = Element.make("compile", content = [Content.Children [token; resourcesElem]])
+    let resources = r.resources |> Seq.map resourceToXml
+    let resourcesElem = Some <| Element.make("resources", attributes = ["root-resource-path", r.root], content = [Content.Children resources])
+    let options =
+        match r.options with
+        | None -> None
+        | Some o -> 
+            let compiler = Element.make("compiler", content = [Content.Value o.compiler ])
+            let outputFormat = Element.make("outputFormat", content = [Content.Value o.outputFormat])
+            Some <| Element.make("options", content = [Content.Children [compiler; outputFormat]])
+    let compileElements = [token; options; resourcesElem] |> Seq.choose id
+    let xml = Element.make("compile", content = [Content.Children compileElements])
     toBin xml
 
 let send (serverUrl: string) (r: Request) =
