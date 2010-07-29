@@ -153,8 +153,8 @@ let compile (serverUrl: string) (r: Request) =
     let frename dest src = File.Move(src, dest src)
     let prependRoot s = Path.GetFileNameWithoutExtension(r.root) + "-" + s
     let renameWithRoot = frename prependRoot
-    let renameAllWithRoot = Seq.iter renameWithRoot
-    download response.logs |> renameAllWithRoot
+    let downloadAndRename = download >> (Seq.iter renameWithRoot)
+    downloadAndRename response.logs
     match response.status with
     | Failure e -> printfn "Error %s: %s" e.etype e.message
-    | Successful docs -> download docs |> renameAllWithRoot
+    | Successful docs -> downloadAndRename docs
