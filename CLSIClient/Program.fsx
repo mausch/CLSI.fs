@@ -1,4 +1,4 @@
-﻿#r "bin/debug/CLSIClient.dll"
+﻿#r "bin/Debug/net5.0/CLSIClient.dll"
 
 open CLSI
 
